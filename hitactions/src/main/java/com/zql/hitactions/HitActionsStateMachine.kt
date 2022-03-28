@@ -19,6 +19,9 @@ class HitActionsStateMachine(looper: Looper?) : StateMachine(TAG, looper) {
         private val EVENT_SETACTIONLISTENER = 6
         private val EVENT_ADD_ACTION_ARRAY = 7
         private val EVENT_REMOVE_ACTION_ARRAY = 8
+        private val EVENT_UPDATE_ACTION_ARRAY = 9
+        private val EVENT_UPDATE_ACTION_LISTENER = 10
+
 
     }
 
@@ -68,6 +71,30 @@ class HitActionsStateMachine(looper: Looper?) : StateMachine(TAG, looper) {
             AddActionParam(actionName, actionList, listener, callback)
         )
     }
+
+    fun updateActionArray(
+        actionList: ArrayList<Action>,
+        actionName: String = DEFAULT_ACTIONNAME,
+        callback: IAddActionResult? = null
+    ) {
+        HitActionLog.d(TAG, "updateActionArray")
+        sendMessage(
+            EVENT_UPDATE_ACTION_ARRAY,
+            UpdateActionParam(actionName, actionList, callback)
+        )
+    }
+
+    fun updateActionListener(
+        actionName: String,
+        listener: IActionListener,
+    ) {
+        HitActionLog.d(TAG, "updateActionListener")
+        sendMessage(
+            EVENT_UPDATE_ACTION_LISTENER,
+            UpdateListenerParam(actionName, listener)
+        )
+    }
+
 
     fun removeActionArray(actionName: String = DEFAULT_ACTIONNAME) {
         HitActionLog.d(TAG, "removeActionArray")
@@ -178,47 +205,43 @@ class HitActionsStateMachine(looper: Looper?) : StateMachine(TAG, looper) {
                             TAG,
                             " DefaultState processMessage EVENT_ADD_ACTION_ARRAY  begin"
                         )
-                        if (!actionArray.keys.contains(param.actionName)) {
+
+                        actionArray.forEach {
+                            val itemActionsArray = it.value
+                            val itemActionName = it.key
+                            var child: ArrayList<Action>
+                            val parent = if (itemActionsArray.size >= param.actionList.size) {
+                                child = param.actionList
+                                itemActionsArray
+                            } else {
+                                child = itemActionsArray
+                                itemActionsArray
+                            }
                             HitActionLog.d(
                                 TAG,
-                                " DefaultState processMessage EVENT_ADD_ACTION_ARRAY  key is unuse"
+                                "DefaultState processMessage EVENT_ADD_ACTION_ARRAY   check  parent=${
+                                    dumpArrayList(
+                                        parent
+                                    )
+                                };child=${
+                                    dumpArrayList(child)
+                                }"
                             )
-                            actionArray.forEach {
-                                val itemActionsArray = it.value
-                                val itemActionName=it.key
-                                var child: ArrayList<Action>
-                                val parent = if (itemActionsArray.size >= param.actionList.size) {
-                                    child = param.actionList
-                                    itemActionsArray
-                                } else {
-                                    child = itemActionsArray
-                                    itemActionsArray
+                            for (index in 0 until child.size) {
+                                if (child.get(index).actionId != parent.get(index).actionId) {
+                                    break
+                                } else if (index == child.size - 1) {
+                                    HitActionLog.w(
+                                        TAG,
+                                        " DefaultState processMessage EVENT_ADD_ACTION_ARRAY   actionname ${param.actionName} is invalid!!"
+                                    )
+                                    param.callback?.onAddStatus(false)
+                                    return true
                                 }
-                                HitActionLog.d(
-                                    TAG,
-                                    "DefaultState processMessage EVENT_ADD_ACTION_ARRAY   check  parent=${
-                                        dumpArrayList(
-                                            parent
-                                        )
-                                    };child=${
-                                        dumpArrayList(child)
-                                    }"
-                                )
-                                for (index in 0 until child.size) {
-                                    if (child.get(index).actionId != parent.get(index).actionId) {
-                                        break
-                                    } else if (index == child.size - 1) {
-                                        HitActionLog.w(
-                                            TAG,
-                                            " DefaultState processMessage EVENT_ADD_ACTION_ARRAY   actionname ${param.actionName} is invalid!!"
-                                        )
-                                        param.callback?.onAddStatus(false)
-                                        return true
-                                    }
-                                }
-
                             }
+
                         }
+
 
                         HitActionLog.d(
                             TAG,
@@ -226,6 +249,102 @@ class HitActionsStateMachine(looper: Looper?) : StateMachine(TAG, looper) {
                         )
                         actionArray.put(param.actionName, param.actionList)
                         param.callback?.onAddStatus(true)
+                        if (!::actionListener.isInitialized) {
+                            actionListener = HashMap()
+                        }
+
+                        actionListener.put(param.actionName, param.listener)
+                        if (::actionArray.isInitialized && ::actionListener.isInitialized) {
+                            HitActionLog.d(
+                                TAG,
+                                "DefaultState processMessage EVENT_ADD_ACTION_ARRAY: sendMessage(EVENT_STATE_IDLE)"
+                            )
+                            sendMessage(EVENT_STATE_IDLE)
+                        }
+                        return true
+
+                    }
+
+                    EVENT_UPDATE_ACTION_ARRAY -> {
+                        val param = msg.obj as UpdateActionParam
+                        if (!::actionArray.isInitialized) {
+                            actionArray = HashMap()
+                        }
+                        HitActionLog.d(
+                            TAG,
+                            " DefaultState processMessage EVENT_UPDATE_ACTION_ARRAY  begin"
+                        )
+
+                        actionArray.forEach {
+                            val itemActionsArray = it.value
+                            val itemActionName = it.key
+                            var child: ArrayList<Action>
+                            val parent = if (itemActionsArray.size >= param.actionList.size) {
+                                child = param.actionList
+                                itemActionsArray
+                            } else {
+                                child = itemActionsArray
+                                itemActionsArray
+                            }
+                            HitActionLog.d(
+                                TAG,
+                                "DefaultState processMessage EVENT_UPDATE_ACTION_ARRAY   check  parent=${
+                                    dumpArrayList(
+                                        parent
+                                    )
+                                };child=${
+                                    dumpArrayList(child)
+                                }"
+                            )
+                            for (index in 0 until child.size) {
+                                if (child.get(index).actionId != parent.get(index).actionId) {
+                                    break
+                                } else if (index == child.size - 1) {
+                                    HitActionLog.w(
+                                        TAG,
+                                        " DefaultState processMessage EVENT_UPDATE_ACTION_ARRAY   actionname ${param.actionName} is invalid!!"
+                                    )
+                                    param.callback?.onAddStatus(false)
+                                    return true
+                                }
+                            }
+
+                        }
+
+                        HitActionLog.d(
+                            TAG,
+                            "DefaultState processMessage EVENT_UPDATE_ACTION_ARRAY: put ${param.actionName}"
+                        )
+                        actionArray.put(param.actionName, param.actionList)
+                        actionArray.forEach {
+                            HitActionLog.d(
+                                TAG,
+                                "DefaultState processMessage EVENT_UPDATE_ACTION_ARRAY: actionArray key=${it.key} ;value=${it.value}"
+                            )
+                        }
+
+                        param.callback?.onAddStatus(true)
+                        if (::actionArray.isInitialized && ::actionListener.isInitialized) {
+                            HitActionLog.d(
+                                TAG,
+                                "DefaultState processMessage EVENT_UPDATE_ACTION_ARRAY: sendMessage(EVENT_STATE_IDLE)"
+                            )
+                            sendMessage(EVENT_STATE_IDLE)
+                        }
+                        return true
+
+                    }
+
+                    EVENT_UPDATE_ACTION_LISTENER -> {
+                        val param = msg.obj as UpdateListenerParam
+                        if (!::actionArray.isInitialized) {
+                            actionArray = HashMap()
+                        }
+                        HitActionLog.d(
+                            TAG,
+                            " DefaultState processMessage EVENT_UPDATE_ACTION_LISTENER  begin ${param.actionName}"
+                        )
+
                         if (!::actionListener.isInitialized) {
                             actionListener = HashMap()
                         }
@@ -291,6 +410,21 @@ class HitActionsStateMachine(looper: Looper?) : StateMachine(TAG, looper) {
         val actionList: ArrayList<Action>,
         val listener: IActionListener,
         val callback: IAddActionResult?
+    ) {
+
+    }
+
+    private data class UpdateActionParam(
+        val actionName: String,
+        val actionList: ArrayList<Action>,
+        val callback: IAddActionResult?
+    ) {
+
+    }
+
+    private data class UpdateListenerParam(
+        val actionName: String,
+        val listener: IActionListener,
     ) {
 
     }

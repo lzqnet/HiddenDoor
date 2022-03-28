@@ -6,16 +6,20 @@ import android.os.Bundle
 import android.os.Looper
 import android.util.Log
 import android.view.View
+import android.widget.EditText
 import android.widget.Toast
 import com.zql.hitactions.*
+import java.lang.Exception
 
 
 class MainActivity : AppCompatActivity() {
     private val hitActions: HitActions = HitActions()
+    lateinit var editText:EditText
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        editText=findViewById(R.id.edit) as EditText
         initHiddenDoor()
     }
 
@@ -93,7 +97,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-        }, "4,", callback = object : IAddActionResult {
+        }, "4", callback = object : IAddActionResult {
             override fun onAddStatus(isAdded: Boolean) {
                 Log.d("hitactions", "MainActivity.onAddStatus: list4 isAdded=$isAdded ");
             }
@@ -165,5 +169,44 @@ class MainActivity : AppCompatActivity() {
 
     fun onRemoveClick(view: View) {
         hitActions.removeActionArray()
+    }
+
+    fun onUpdateArrayClick(view: View) {
+        var string=editText.editableText
+        var arrayString :List<Int>
+        try {
+          arrayString =string.toString().removeSurrounding("[","]").replace(" ","").split(",").map { it.toInt() }
+            val list = ArrayList<Action>()
+            arrayString.forEach {
+                list.add(Action(it))
+            }
+            hitActions.updateActionArray(list,"4",object :IAddActionResult{
+                override fun onAddStatus(isAdded: Boolean) {
+                    Log.e("hitactions", "onUpdateArrayClick:onAddStatus isAdded=$isAdded");
+                }
+
+            })
+
+        }catch (e:Exception){
+            Log.e("hitactions", "onUpdateArrayClick:",e);
+
+        }
+    }
+    fun onUpdateListenerClick(view: View) {
+
+        try {
+
+            hitActions.updateActionListener("4",object :IActionListener{
+                override fun onActionStateChange(isMatch: Boolean) {
+                    Log.e("hitactions", "onActionStateChange  updateActionListener:isMatch=$isMatch");
+
+                }
+            }
+               )
+
+        }catch (e:Exception){
+            Log.e("hitactions", "onUpdateArrayClick:",e);
+
+        }
     }
 }

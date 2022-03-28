@@ -16,6 +16,7 @@ class HitActions {
         }
     }
 
+    @Deprecated("using addActionArray replace")
     fun setActionSequence(actions: ArrayList<Action>) {
         if (!this::stateMachine.isInitialized) {
             HitActionLog.w(
@@ -27,6 +28,7 @@ class HitActions {
         stateMachine.setActionArray(actions)
     }
 
+    @Deprecated("using addActionArray replace")
     fun setActionListener(listener: IActionListener) {
         if (!this::stateMachine.isInitialized) {
             HitActionLog.w(
@@ -63,8 +65,8 @@ class HitActions {
     fun addActionArray(
         actionList: ArrayList<Action>,
         listener: IActionListener,
-        actionName: String= DEFAULT_ACTIONNAME,
-        callback:IAddActionResult?=null
+        actionName: String = DEFAULT_ACTIONNAME,
+        callback: IAddActionResult? = null
     ) {
         if (!this::stateMachine.isInitialized) {
             HitActionLog.w(
@@ -73,10 +75,39 @@ class HitActions {
             )
             return
         }
-         stateMachine.addActionArray(actionName, actionList, listener,callback)
+        stateMachine.addActionArray(actionName, actionList, listener, callback)
     }
 
-    fun removeActionArray(actionName: String=DEFAULT_ACTIONNAME) {
+    fun updateActionArray(
+        actionList: ArrayList<Action>,
+        actionName: String = DEFAULT_ACTIONNAME,
+        callback: IAddActionResult? = null
+    ) {
+        if (!this::stateMachine.isInitialized) {
+            HitActionLog.w(
+                HitActionsConstants.MODULE_TAG,
+                " updateActionArray  call init fun fist!!"
+            )
+            return
+        }
+        stateMachine.updateActionArray(actionList, actionName, callback)
+    }
+
+    fun updateActionListener(
+        actionName: String = DEFAULT_ACTIONNAME,
+        listener: IActionListener
+    ) {
+        if (!this::stateMachine.isInitialized) {
+            HitActionLog.w(
+                HitActionsConstants.MODULE_TAG,
+                " updateActionListener  call init fun fist!!"
+            )
+            return
+        }
+        stateMachine.updateActionListener(actionName, listener)
+    }
+
+    fun removeActionArray(actionName: String = DEFAULT_ACTIONNAME) {
         if (!this::stateMachine.isInitialized) {
             HitActionLog.w(
                 HitActionsConstants.MODULE_TAG,
